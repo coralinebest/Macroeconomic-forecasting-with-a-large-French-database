@@ -1,0 +1,229 @@
+---
+title: "Final project"
+author: "Alexandre Faux, Juan Manuel Zuluaga Morales,Coraline Best"
+date: "2023-12-18"
+output: html_document
+---
+# Preprocessing of the dataset
+```{r}
+#Loading packages
+library(pacman)
+p_load(tidyverse, data.table, broom, parallel, here, plotly, ggplot2, stargazer, magrittr,skimr,janitor,  tidymodels, ADAPTS, caret, yardstick, rlang, parsnip, sandwich, lmtest, haven, tinytex, rdrobust,dplyr, plotrix, plyr,readxl, usmap, stringr, finalfit, scales,tidyr, gridExtra, patchwork, EventStudy, fixest,kableExtra,wesanderson, gtsummary, tsibble, lubridate, anytime,BiocManager, Formula, xts, ggfortify, feasts, cowplot, fpp3, forecast, tseries, fabletools, prophet, forecast, keras, cowplot, corrplot, ggcorrplot,zoo, aTSA, urca,dynlm, healthyR.ts)
+```
+
+```{r }
+setwd("/Users/coraline/Desktop/Master2/Big final project macro")
+```
+
+
+```{r }
+#loading the dataset
+macro_data <- read_excel("final_ensemble.xlsx")
+
+```
+
+```{r}
+#Renaming the column variables
+variables_names<-c("date","retail_index","manufacturing_orderbook", "manufacturing_foreignorders","bci_manufacturing", "mi_cash_position","mi_average_capacity_utilization_rate","household_cons_goods_food","household_cons_goods_durable", "household_cons_goods_manufactured","household_cons_goods","household_cons_goods_transport_equipment", "nb_business_creations_excluding_micro_entrepreneurs", "nb_business_creations_overall", "cumulative_failures_legal_entities",  "unemployed_persons",  "nb_temporary_workers","cpi_food","cpi_durable_goods", "cpi_energy","cpi_total", "cpi_manufact_products","cpi_services","ipi_other_industries","ipi_durable_consumer_goods","ipi_nondurable_consumer_goods", "ipi_interm_goods","ipi_capital_goods","ipi_coking_refining","ipi_construction", "ipi_energy_excluding_water","ipi_energy", "ipi_manufacture_of_equipment","ipi_manufacture_of_transp_equipment", "ipi_agro_industries", "ipi_manufact_indust","ipi_extractive_indust", "listed_shares_outstanding_market_value",  "redemptions_listed_shares", "gross_issuance_listed_shares","net_issuance_listed_shares","net_issuance_listed_shares12_month_rolling_cum_flows","net_issuance_debt_securities_by_public_administrations"
+, "monetary_aggregates_francem1 ","monetary_aggregates_francem2 ","monthly_household_confidence_indicator","mhs_opinion_current_savings_capacity",  "mhs_opinion_future_savings_capacity ", "mhs_opinion_opportunity_major_purchases", "mhs_opinion_future_financial_situations","mhs_opinion_past_financial_situation", "brent_crude_oil_price", "international_price_indices_imported_raw_materials","exchange_rate_euro_chf", "exchange_rate_euro_gbp", "exchange_rate_euros_yen", "exchange_rate_euros_dollars", "tresory_bonds_30years", "tresory_bonds_10years","euribor_1m","euribor_12m", "euribor_3m", "euribor_6m", "nb_authorized_housing_construction", "nb_housing_starts","authorized_building_site_area_non_residential_premises", "area_of_non_residential_building_sites_started", "marginal_lending_facility", "deposit_facility","main_refinancing_operations_min_bid_rate/fixed" )
+
+colnames(macro_data)<- variables_names
+
+```
+
+```{r}
+#Converting variables from character to numeric
+macro_data$retail_index <- as.numeric(gsub(",", ".", macro_data$retail_index))
+macro_data$manufacturing_orderbook <- as.numeric(gsub(",", ".", macro_data$manufacturing_orderbook))
+macro_data$manufacturing_foreignorders <- as.numeric(gsub(",", ".", macro_data$manufacturing_foreignorders))
+macro_data$bci_manufacturing <- as.numeric(gsub(",", ".", macro_data$bci_manufacturing))
+macro_data$mi_cash_position <- as.numeric(gsub(",", ".", macro_data$mi_cash_position))
+macro_data$mi_average_capacity_utilization_rate <- as.numeric(gsub(",", ".", macro_data$mi_average_capacity_utilization_rate))
+macro_data$unemployed_persons <- as.numeric(gsub(",", ".", macro_data$unemployed_persons))
+macro_data$nb_temporary_workers <- as.numeric(gsub(",", ".", macro_data$nb_temporary_workers))
+macro_data$net_issuance_debt_securities_by_public_administrations <- as.numeric(gsub(",", ".", macro_data$net_issuance_debt_securities_by_public_administrations))
+macro_data$exchange_rate_euro_chf <- as.numeric(gsub(",", ".", macro_data$exchange_rate_euro_chf))
+macro_data$exchange_rate_euro_gbp <- as.numeric(gsub(",", ".", macro_data$exchange_rate_euro_gbp))
+macro_data$exchange_rate_euros_yen <- as.numeric(gsub(",", ".", macro_data$exchange_rate_euros_yen))
+macro_data$exchange_rate_euros_dollars <- as.numeric(gsub(",", ".", macro_data$exchange_rate_euros_dollars))
+macro_data$tresory_bonds_30years <- as.numeric(gsub(",", ".", macro_data$tresory_bonds_30years))
+macro_data$tresory_bonds_10years <- as.numeric(gsub(",", ".", macro_data$tresory_bonds_10years))
+macro_data$euribor_1m<- as.numeric(gsub(",", ".", macro_data$euribor_1m))
+macro_data$euribor_12m <- as.numeric(gsub(",", ".", macro_data$euribor_12m))
+macro_data$euribor_3m <- as.numeric(gsub(",", ".", macro_data$euribor_3m))
+macro_data$euribor_6m <- as.numeric(gsub(",", ".", macro_data$euribor_6m))
+macro_data$marginal_lending_facility <- as.numeric(gsub(",", ".", macro_data$marginal_lending_facility))
+macro_data$deposit_facility <- as.numeric(gsub(",", ".", macro_data$deposit_facility))
+macro_data$`main_refinancing_operations_min_bid_rate/fixed` <- as.numeric(gsub(",", ".", macro_data$`main_refinancing_operations_min_bid_rate/fixed`))
+
+```
+
+
+```{r}
+missing_count <- colSums(is.na(macro_data))
+
+print(missing_count)
+```
+
+```{r}
+#Dropping missing variables
+macro_data <- na.omit(macro_data)
+
+```
+
+#Descriptive statistics
+```{r}
+cpi= macro_data[, c("date", "cpi_food", "cpi_durable_goods", "cpi_services", "cpi_manufact_products", "cpi_energy", "cpi_total")]
+
+cpi<- cpi %>%
+  mutate(date=yearmonth(date)) %>%
+  as_tsibble(index=date) 
+
+cpi %>%
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = cpi_food, color = "Food"), size = 1) +
+  geom_line(aes(y = cpi_energy, color = "Energy"), size = 1) +
+  geom_line(aes(y = cpi_durable_goods, color = "Durable Goods"), size = 1) +
+  geom_line(aes(y = cpi_services, color = "Services"), size = 1) +
+  geom_line(aes(y = cpi_manufact_products, color = "Manufactured Products"), size = 1) +
+  scale_color_manual(values = c("Manufactured Products" = "deeppink4", "Services" = "aquamarine3" , "Durable Goods" = "cornflowerblue", "Energy" = "brown1", "Food" = "gold")) +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  xlab("Date") +
+  ylab("Consumer Price Index") +
+  ggtitle("Consumer Price Index over time") +
+  labs(color = "Categories")  
+
+
+```
+
+
+
+```{r}
+ipi_industries<- macro_data[,c("date","ipi_extractive_indust", "ipi_construction", "ipi_energy", "ipi_agro_industries", "ipi_manufact_indust", "ipi_other_industries", "ipi_interm_goods", "ipi_nondurable_consumer_goods", "ipi_capital_goods", "ipi_durable_consumer_goods", "ipi_manufacture_of_transp_equipment")]
+
+ipi_industries<- ipi_industries %>%
+  mutate(date=yearmonth(date)) %>%
+  as_tsibble(index=date) 
+
+
+graph1<-ipi_industries %>%
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = ipi_extractive_indust , color = "Extractive Industries"), size = 1) +
+  geom_line(aes(y = ipi_construction, color = "Construction"), size = 1) +
+  geom_line(aes(y = ipi_energy, color = "Energy"), size = 1) +
+  geom_line(aes(y = ipi_agro_industries, color = "Agro Industries"), size = 1) +
+  geom_line(aes(y = ipi_manufact_indust, color = "Manufacturing Industries"), size = 1)+
+  geom_line(aes(y =ipi_other_industries , color = "Other industries"), size = 1)+
+  scale_color_manual(values = c("Manufacturing Industries" = "deeppink4", "Agro Industries" = "aquamarine3" , "Energy" = "cornflowerblue", "Construction" = "brown1", "Extractive Industries" = "gold", "Other industries"= "violet")) +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  xlab("Date") +
+  ylab("Industrial production index") +
+  labs(color = "Categories of Industries")  
+
+graph2<-ipi_industries %>%
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = ipi_interm_goods , color = "Intermediate Goods"), size = 1) +
+  geom_line(aes(y = ipi_nondurable_consumer_goods, color = "Non Durable Consumer Goods"), size = 1) +
+  geom_line(aes(y =ipi_durable_consumer_goods, color = "Durable Consumer Goods"), size = 1) +
+  geom_line(aes(y = ipi_manufacture_of_transp_equipment, color = "Manufacture of Transport Equipment"), size = 1) +
+  geom_line(aes(y = ipi_capital_goods, color = "Capital Goods"), size = 1)+
+  scale_color_manual(values = c("Capital Goods" = "deeppink4", "Manufacture of Transport Equipment" = "aquamarine3" , "Durable Consumer Goods" = "cornflowerblue", "Non Durable Consumer Goods" = "brown1", "Intermediate Goods" = "gold")) +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  xlab("Date") +
+  ylab("Industrial production index") +
+  labs(color = "Categories of Goods")  
+
+combined_plots <- graph1 + graph2 +
+  plot_layout(ncol = 2) +
+  plot_annotation(title = "Industrial Production Index over time")
+
+# Print the combined plot
+print(combined_plots)
+
+```
+
+```{r}
+graph_data<- macro_data[, c("date", "unemployed_persons")]
+
+graph_data<- graph_data %>%
+  mutate(date=yearmonth(date)) %>%
+  as_tsibble(index=date) 
+
+graph_data %>%
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = unemployed_persons),color = "cornflowerblue", size = 1) +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  xlab("Date") +
+  ylab("Number of Unemployed Persons") +
+  ggtitle("Number of Unemployed Persons Over Time")
+
+
+
+
+```
+
+
+```{r}
+tableau_stat_desc <- macro_data[,c("retail_index","manufacturing_orderbook", "manufacturing_foreignorders","bci_manufacturing", "mi_cash_position","mi_average_capacity_utilization_rate",  "nb_business_creations_excluding_micro_entrepreneurs", "nb_business_creations_overall", "cumulative_failures_legal_entities",  "nb_temporary_workers","cpi_total", "listed_shares_outstanding_market_value",  "redemptions_listed_shares", "gross_issuance_listed_shares","net_issuance_listed_shares","net_issuance_listed_shares12_month_rolling_cum_flows","net_issuance_debt_securities_by_public_administrations"
+, "monetary_aggregates_francem1 ","monetary_aggregates_francem2 ","monthly_household_confidence_indicator","mhs_opinion_current_savings_capacity",  "mhs_opinion_future_savings_capacity ", "mhs_opinion_opportunity_major_purchases", "mhs_opinion_future_financial_situations","mhs_opinion_past_financial_situation", "brent_crude_oil_price", "international_price_indices_imported_raw_materials","exchange_rate_euro_chf", "exchange_rate_euro_gbp", "exchange_rate_euros_yen", "exchange_rate_euros_dollars", "tresory_bonds_30years", "tresory_bonds_10years","euribor_1m","euribor_12m", "euribor_3m", "euribor_6m", "nb_authorized_housing_construction", "nb_housing_starts","authorized_building_site_area_non_residential_premises", "area_of_non_residential_building_sites_started", "marginal_lending_facility", "deposit_facility","main_refinancing_operations_min_bid_rate/fixed" )]
+
+
+ summary(tableau_stat_desc)
+```
+
+
+```{r}
+household_consumption<- macro_data[, c("date","household_cons_goods_food", "household_cons_goods_durable","household_cons_goods_manufactured", "household_cons_goods_transport_equipment")]
+
+household_consumption<- household_consumption %>%
+  mutate(date=yearmonth(date)) %>%
+  as_tsibble(index=date) 
+
+household_consumption %>%
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = household_cons_goods_food , color = "Food"), size = 1) +
+  geom_line(aes(y = household_cons_goods_durable, color = "Durable Goods"), size = 1) +
+  geom_line(aes(y = household_cons_goods_manufactured, color = "Manufactured Goods"), size = 1) +
+  geom_line(aes(y = household_cons_goods_transport_equipment, color = "Transport Equipment"), size = 1) +
+  scale_color_manual(values = c("Transport Equipment" = "aquamarine3" , "Manufactured Goods" = "cornflowerblue", "Durable Goods" = "violet", "Food" = "gold")) +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  xlab("Date") +
+  ylab("Monthly Household Consumption") +
+  labs(color = "Categories of goods")  
+
+```
+
+
+#Correlation Matrix
+```{r}
+correlation_data <- macro_data[, c("retail_index","manufacturing_orderbook", "manufacturing_foreignorders","bci_manufacturing", "mi_cash_position","mi_average_capacity_utilization_rate","household_cons_goods_food","household_cons_goods_durable", "household_cons_goods_manufactured","household_cons_goods","household_cons_goods_transport_equipment", "nb_business_creations_excluding_micro_entrepreneurs", "nb_business_creations_overall", "cumulative_failures_legal_entities",  "unemployed_persons",  "nb_temporary_workers","cpi_food","cpi_durable_goods", "cpi_energy","cpi_total", "cpi_manufact_products","cpi_services","ipi_other_industries","ipi_durable_consumer_goods","ipi_nondurable_consumer_goods", "ipi_interm_goods","ipi_capital_goods","ipi_coking_refining","ipi_construction", "ipi_energy_excluding_water","ipi_energy", "ipi_manufacture_of_equipment","ipi_manufacture_of_transp_equipment", "ipi_agro_industries", "ipi_manufact_indust","ipi_extractive_indust", "listed_shares_outstanding_market_value",  "redemptions_listed_shares", "gross_issuance_listed_shares","net_issuance_listed_shares","net_issuance_listed_shares12_month_rolling_cum_flows","net_issuance_debt_securities_by_public_administrations"
+, "monetary_aggregates_francem1 ","monetary_aggregates_francem2 ","monthly_household_confidence_indicator","mhs_opinion_current_savings_capacity",  "mhs_opinion_future_savings_capacity ", "mhs_opinion_opportunity_major_purchases", "mhs_opinion_future_financial_situations","mhs_opinion_past_financial_situation", "brent_crude_oil_price", "international_price_indices_imported_raw_materials","exchange_rate_euro_chf", "exchange_rate_euro_gbp", "exchange_rate_euros_yen", "exchange_rate_euros_dollars", "tresory_bonds_30years", "tresory_bonds_10years","euribor_1m","euribor_12m", "euribor_3m", "euribor_6m", "nb_authorized_housing_construction", "nb_housing_starts","authorized_building_site_area_non_residential_premises", "area_of_non_residential_building_sites_started", "marginal_lending_facility", "deposit_facility","main_refinancing_operations_min_bid_rate/fixed" )
+]
+
+matrice_cor <- cor(correlation_data)
+
+lower_triangle <- matrice_cor
+lower_triangle[upper.tri(lower_triangle)] <- NA
+
+
+corrplot(
+  lower_triangle, 
+  method = "color",
+  tl.srt = 25,
+  type = "lower",
+  tl.col = "black",
+  bg = "white",
+  mar = c(0, 0, 1, 0),  
+  tl.cex = 0.4,
+  addrect = 7
+)
+```
+
+
+
+
